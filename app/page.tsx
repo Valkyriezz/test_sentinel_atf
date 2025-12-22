@@ -1,4 +1,6 @@
 import Image from "next/image";
+// Phase 2 Email Test
+const MOCK_API_KEY = "SG.test_key_1234567890abcdef";
 
 export default function Home() {
   return (
