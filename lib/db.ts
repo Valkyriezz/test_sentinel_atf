@@ -2,7 +2,6 @@
  * INTENTIONAL SECURITY VULNERABILITIES FOR TESTING PURPOSES
  *
  * This is an in-memory mock database with hardcoded secrets and test data.
- * DO NOT USE IN PRODUCTION.
  */
 
 // VULNERABILITY: Hardcoded database credentials
@@ -12,42 +11,42 @@ const DB_CONFIG = {
   MONGO_USER: "admin",
   MONGO_PASSWORD: "SuperSecret123",
   DB_NAME: "simplebank",
-}
+};
 
 // VULNERABILITY: Hardcoded JWT secret
-export const JWT_SECRET = "myVeryInsecureJWTSecret123!@#"
+export const JWT_SECRET = "myVeryInsecureJWTSecret123!@#";
 
 // VULNERABILITY: Hardcoded API keys
 export const API_KEYS = {
   STRIPE_SECRET: "sk_test_51HardcodedStripeKey123456789",
   AWS_SECRET_KEY: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
   SENDGRID_API_KEY: "SG.HardcodedSendGridKey123456789",
-}
+};
 
 interface User {
-  id: string
-  name: string
-  email: string
-  password: string // STORED IN PLAINTEXT - VULNERABILITY
-  accountNumber: string
-  balance: number
-  createdAt: string
+  id: string;
+  name: string;
+  email: string;
+  password: string; // STORED IN PLAINTEXT - VULNERABILITY
+  accountNumber: string;
+  balance: number;
+  createdAt: string;
 }
 
 interface Transaction {
-  id: string
-  userId: string
-  type: "credit" | "debit"
-  amount: number
-  from: string
-  to: string
-  date: string
+  id: string;
+  userId: string;
+  type: "credit" | "debit";
+  amount: number;
+  from: string;
+  to: string;
+  date: string;
 }
 
 // In-memory database
 export const db: {
-  users: User[]
-  transactions: Transaction[]
+  users: User[];
+  transactions: Transaction[];
 } = {
   users: [
     // VULNERABILITY: Pre-populated test users with plaintext passwords
@@ -90,20 +89,20 @@ export const db: {
       date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
     },
   ],
-}
+};
 
 // VULNERABILITY: Exposed admin credentials
 export const ADMIN_CREDENTIALS = {
   username: "admin",
   password: "admin123",
   email: "admin@simplebank.com",
-}
+};
 
 // VULNERABILITY: Debug mode enabled with sensitive logging
-export const DEBUG_MODE = true
+export const DEBUG_MODE = true;
 
 export function logSensitiveData(action: string, data: any) {
   if (DEBUG_MODE) {
-    console.log(`[DEBUG] ${action}:`, JSON.stringify(data, null, 2))
+    console.log(`[DEBUG] ${action}:`, JSON.stringify(data, null, 2));
   }
 }
