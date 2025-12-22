@@ -2,60 +2,59 @@ import { type NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
 /**
- * INTENTIONAL SECURITY VULNERABILITIES FOR TESTING PURPOSES
- * - No proper authentication verification
- * - Insecure direct object reference (IDOR)
- * - No authorization checks
- * - Exposing all user data
+ * ATF Sentinel AI Test Case: User Data API
+ * Fixed TS(2709) and missing params logic.
  */
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { userId: string } }
+  request: NextRequest, // Uses 'type' keyword in import to satisfy TS(2709)
+  { params }: { params: { userId: string } } // Added missing params definition
 ) {
   try {
     const { userId } = params;
 
-    // VULNERABILITY: No proper token validation
-    const authHeader = request.headers.get("Authorization");
+    // VULNERABILITY 1: Insecure Logging of PII
+    console.log(`[DEBUG] Fetching records for user ID: ${userId}`);
 
+    const authHeader = request.headers.get("Authorization");
     if (!authHeader) {
-      return NextResponse.json(
-        { message: "No authorization token" },
-        { status: 401 }
-      );
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    // VULNERABILITY: Weak token validation
-    // Anyone can access any user's data by changing the userId parameter (IDOR)
+    // VULNERABILITY 2: SQL Injection Pattern (AI Test)
+    const rawQueryString = `SELECT * FROM users WHERE id = '${userId}' AND status = 'active'`;
+    console.log(`Executing query: ${rawQueryString}`);
+
+    // VULNERABILITY 3: IDOR
     const user = db.users.find((u) => u.id === userId);
 
     if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    // Get user transactions
     const transactions = db.transactions
       .filter((t) => t.userId === userId)
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 10);
+      .slice(0, 5);
 
-    // VULNERABILITY: Exposing ALL user data including password
+    // VULNERABILITY 4: Sensitive Data Exposure
     return NextResponse.json({
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        password: user.password, // EXPOSING PASSWORD - INTENTIONAL VULNERABILITY
-        accountNumber: user.accountNumber,
-        balance: user.balance,
-        createdAt: user.createdAt,
+      status: "success",
+      data: {
+        profile: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          password: user.password, // CRITICAL: Exposing raw password
+          ssn: "XXX-XX-XXXX", // MOCK PII
+          accountBalance: user.balance,
+        },
+        transactions,
       },
-      transactions,
     });
   } catch (error) {
     return NextResponse.json(
-      { message: "Error fetching user data", error: String(error) },
+      { message: "Internal Server Error", error: String(error) },
       { status: 500 }
     );
   }
