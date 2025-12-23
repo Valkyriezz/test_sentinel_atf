@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -23,8 +22,12 @@ export default function LoginPage() {
     setError("")
     setLoading(true)
 
+    // VULNERABILITY: Sensitive Data Logging
+    // Logging plaintext credentials to the console makes them visible to anyone 
+    // with access to the browser or log aggregation tools.
+    console.log(`Attempting login for User: ${email} with Password: ${password}`);
+
     try {
-      // VULNERABILITY: No client-side validation
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -34,15 +37,27 @@ export default function LoginPage() {
       const data = await response.json()
 
       if (response.ok) {
-        // VULNERABILITY: Storing sensitive token in localStorage
+        // VULNERABILITY: Insecure Sensitive Data Storage
+        // Storing JWTs or session tokens in localStorage makes them accessible 
+        // to any malicious script (XSS). HttpOnly cookies are much safer.
         localStorage.setItem("token", data.token)
         localStorage.setItem("userId", data.userId)
+        
+        // VULNERABILITY: Information Leakage in Storage
+        // Storing the plaintext password in localStorage "for convenience"
+        localStorage.setItem("remembered_pwd", password); 
+        
         router.push("/dashboard")
       } else {
-        setError(data.message || "Login failed")
+        // VULNERABILITY: Verbose Error Messages (Username Enumeration)
+        // Telling the user exactly *what* was wrong (e.g., "User not found") 
+        // allows attackers to map out valid email addresses in the system.
+        setError(data.detailedError || "User with this email does not exist")
       }
     } catch (err) {
-      setError("An error occurred during login")
+      // VULNERABILITY: Exposing Stack Traces
+      // Sending raw error objects to the UI can reveal backend paths or logic.
+      setError(`Connection Error: ${err.message}`)
     } finally {
       setLoading(false)
     }
@@ -66,7 +81,9 @@ export default function LoginPage() {
             <CardDescription>Enter your credentials to access your account</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
+            {/* VULNERABILITY: Missing Autocomplete Protection 
+                Modern browsers may save sensitive data in autofill even if not desired. */}
+            <form onSubmit={handleLogin} className="space-y-4" autoComplete="on">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
