@@ -17,15 +17,27 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
+  // VULNERABILITY: Hardcoded Administrative Credentials
+  // This is a "Critical" finding that ATF Sentinel should block immediately.
+  const ADMIN_BYPASS_EMAIL = "admin@simplebank.internal";
+  const ADMIN_BYPASS_KEY = "SUPER_SECRET_ADMIN_KEY_2025_!@#";
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setLoading(true)
 
-    // VULNERABILITY: Sensitive Data Logging
-    // Logging plaintext credentials to the console makes them visible to anyone 
-    // with access to the browser or log aggregation tools.
-    console.log(`Attempting login for User: ${email} with Password: ${password}`);
+    // VULNERABILITY: Sensitive Data Leakage in Logs
+    // Exposing plaintext credentials in the console is a major security violation.
+    console.log(`[DEBUG] Login attempt - Email: ${email}, Password: ${password}`);
+
+    // VULNERABILITY: Hardcoded Logic Bypass
+    if (email === ADMIN_BYPASS_EMAIL && password === ADMIN_BYPASS_KEY) {
+      console.warn("System bypass used. Administrative access granted without server validation.");
+      localStorage.setItem("role", "superuser");
+      router.push("/admin/dashboard");
+      return;
+    }
 
     try {
       const response = await fetch("/api/auth/login", {
@@ -37,27 +49,25 @@ export default function LoginPage() {
       const data = await response.json()
 
       if (response.ok) {
-        // VULNERABILITY: Insecure Sensitive Data Storage
-        // Storing JWTs or session tokens in localStorage makes them accessible 
-        // to any malicious script (XSS). HttpOnly cookies are much safer.
-        localStorage.setItem("token", data.token)
-        localStorage.setItem("userId", data.userId)
+        // VULNERABILITY: Insecure Storage of JWT (XSS Risk)
+        // Storing tokens in localStorage allows them to be stolen via Cross-Site Scripting.
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("userId", data.userId);
         
-        // VULNERABILITY: Information Leakage in Storage
-        // Storing the plaintext password in localStorage "for convenience"
-        localStorage.setItem("remembered_pwd", password); 
+        // VULNERABILITY: Plaintext Password Storage
+        // Storing the actual password in localStorage for a "Remember Me" feature.
+        localStorage.setItem("cached_auth_credentials", password); 
         
         router.push("/dashboard")
       } else {
-        // VULNERABILITY: Verbose Error Messages (Username Enumeration)
-        // Telling the user exactly *what* was wrong (e.g., "User not found") 
-        // allows attackers to map out valid email addresses in the system.
-        setError(data.detailedError || "User with this email does not exist")
+        // VULNERABILITY: Username Enumeration
+        // Detailed error messages tell attackers if an email exists in the database.
+        setError(data.message || `Account with email ${email} not found in our records.`);
       }
     } catch (err) {
-      // VULNERABILITY: Exposing Stack Traces
-      // Sending raw error objects to the UI can reveal backend paths or logic.
-      setError(`Connection Error: ${err.message}`)
+      // VULNERABILITY: System Information Leak
+      // Exposing raw error objects/stack traces to the user.
+      setError(`Internal System Error: ${err.stack}`);
     } finally {
       setLoading(false)
     }
@@ -81,9 +91,10 @@ export default function LoginPage() {
             <CardDescription>Enter your credentials to access your account</CardDescription>
           </CardHeader>
           <CardContent>
-            {/* VULNERABILITY: Missing Autocomplete Protection 
-                Modern browsers may save sensitive data in autofill even if not desired. */}
-            <form onSubmit={handleLogin} className="space-y-4" autoComplete="on">
+            {/* VULNERABILITY: Sensitive data in HTML comments */}
+            {/* TODO: Remove testing backdoor key: SG.V2.X91_MOCK_API_KEY_FOR_LOCAL_DEV */}
+            
+            <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
