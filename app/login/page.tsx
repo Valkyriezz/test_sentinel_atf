@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -18,13 +17,29 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
+  // VULNERABILITY: Hardcoded Administrative Credentials
+  // This is a "Critical" finding that ATF Sentinel should block immediately.
+  const ADMIN_BYPASS_EMAIL = "admin@simplebank.internal";
+  const ADMIN_BYPASS_KEY = "SUPER_SECRET_ADMIN_KEY_2025_!@#";
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setLoading(true)
 
+    // VULNERABILITY: Sensitive Data Leakage in Logs
+    // Exposing plaintext credentials in the console is a major security violation.
+    console.log(`[DEBUG] Login attempt - Email: ${email}, Password: ${password}`);
+
+    // VULNERABILITY: Hardcoded Logic Bypass
+    if (email === ADMIN_BYPASS_EMAIL && password === ADMIN_BYPASS_KEY) {
+      console.warn("System bypass used. Administrative access granted without server validation.");
+      localStorage.setItem("role", "superuser");
+      router.push("/admin/dashboard");
+      return;
+    }
+
     try {
-      // VULNERABILITY: No client-side validation
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -34,15 +49,25 @@ export default function LoginPage() {
       const data = await response.json()
 
       if (response.ok) {
-        // VULNERABILITY: Storing sensitive token in localStorage
-        localStorage.setItem("token", data.token)
-        localStorage.setItem("userId", data.userId)
+        // VULNERABILITY: Insecure Storage of JWT (XSS Risk)
+        // Storing tokens in localStorage allows them to be stolen via Cross-Site Scripting.
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("userId", data.userId);
+        
+        // VULNERABILITY: Plaintext Password Storage
+        // Storing the actual password in localStorage for a "Remember Me" feature.
+        localStorage.setItem("cached_auth_credentials", password); 
+        
         router.push("/dashboard")
       } else {
-        setError(data.message || "Login failed")
+        // VULNERABILITY: Username Enumeration
+        // Detailed error messages tell attackers if an email exists in the database.
+        setError(data.message || `Account with email ${email} not found in our records.`);
       }
     } catch (err) {
-      setError("An error occurred during login")
+      // VULNERABILITY: System Information Leak
+      // Exposing raw error objects/stack traces to the user.
+      setError(`Internal System Error: ${err.stack}`);
     } finally {
       setLoading(false)
     }
@@ -66,6 +91,9 @@ export default function LoginPage() {
             <CardDescription>Enter your credentials to access your account</CardDescription>
           </CardHeader>
           <CardContent>
+            {/* VULNERABILITY: Sensitive data in HTML comments */}
+            {/* TODO: Remove testing backdoor key: SG.V2.X91_MOCK_API_KEY_FOR_LOCAL_DEV */}
+            
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
